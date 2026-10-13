@@ -4,7 +4,7 @@ import 'providers/transaction_provider.dart';
 import 'screens/home_screen.dart';
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized(); // Required for SQLite
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(const MyApp());
 }
 
@@ -16,11 +16,18 @@ class MyApp extends StatelessWidget {
     return ChangeNotifierProvider(
       create: (_) => TransactionProvider(),
       child: MaterialApp(
-        title: 'Money Tracker',
+        title: 'My Money',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
-          primarySwatch: Colors.indigo,
-          scaffoldBackgroundColor: Colors.white,
+          useMaterial3: true,
+          colorSchemeSeed: const Color(0xFF6750A4),
+          brightness: Brightness.light,
+          scaffoldBackgroundColor: const Color(0xFFF6F6F6),
+          appBarTheme: const AppBarTheme(
+            centerTitle: true,
+            elevation: 0,
+            scrolledUnderElevation: 0,
+          ),
         ),
         home: const HomeScreen(),
       ),

@@ -24,12 +24,14 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final transactionProvider = Provider.of<TransactionProvider>(context);
     final transactions = transactionProvider.transactions;
+    final currencyFormat =
+        NumberFormat.currency(locale: 'id_ID', symbol: 'Rp', decimalDigits: 0);
 
     int dayOfYear(DateTime date) {
       return date.difference(DateTime(date.year, 1, 1)).inDays + 1;
     }
 
-    // Group transactions by date (daily)
+    // ── Group transactions by date (daily) ──
     Map<String, Map<String, double>> dailyMap = {};
     for (var tx in transactions) {
       final dateStr = DateFormat('dd/MM').format(tx.date);
@@ -44,7 +46,6 @@ class _HomeScreenState extends State<HomeScreen> {
             dailyMap[dateStr]!['expense']! + tx.amount;
       }
     }
-    // Sort by date (descending)
     final sortedDailyKeys = dailyMap.keys.toList()
       ..sort((a, b) =>
           DateFormat('dd/MM').parse(a).compareTo(DateFormat('dd/MM').parse(b)));
@@ -57,11 +58,10 @@ class _HomeScreenState extends State<HomeScreen> {
     ];
     final dailyLabels = sortedDailyKeys;
 
-    // Group transactions by week (weekly)
+    // ── Group transactions by week (weekly) ──
     Map<String, Map<String, double>> weeklyMap = {};
     Map<String, List<DateTime>> weeklyDates = {};
     for (var tx in transactions) {
-      // Cari minggu ke berapa dalam tahun
       final weekYear =
           '${tx.date.year}-W${((dayOfYear(tx.date) - tx.date.weekday + 10) / 7).floor()}';
       if (!weeklyMap.containsKey(weekYear)) {
@@ -97,7 +97,7 @@ class _HomeScreenState extends State<HomeScreen> {
         }()
     ];
 
-    // Group transactions by month (monthly)
+    // ── Group transactions by month (monthly) ──
     Map<String, Map<String, double>> monthlyMap = {};
     for (var tx in transactions) {
       final monthYear = DateFormat('MM/yyyy').format(tx.date);
@@ -128,77 +128,280 @@ class _HomeScreenState extends State<HomeScreen> {
         DateFormat('MMM yyyy').format(DateFormat('MM/yyyy').parse(key))
     ];
 
+    // ── UI ──
     return Scaffold(
-      appBar: AppBar(title: const Text('My Money')),
-      body: Column(
-        children: [
-          Card(
-            margin: const EdgeInsets.all(16),
-            elevation: 6,
-            color: Colors.black,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  Text(
-                      'Rp${transactionProvider.totalBalance.toStringAsFixed(0)}',
-                      style: const TextStyle(
-                          color: Colors.blue,
-                          fontSize: 32,
-                          fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      Column(children: [
-                        const Text('Income',
-                            style: TextStyle(color: Colors.blue)),
+      body: SafeArea(
+        child: CustomScrollView(
+          slivers: [
+            // ── Header ──
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
                         Text(
-                            'Rp${transactionProvider.totalIncome.toStringAsFixed(0)}',
-                            style: const TextStyle(color: Colors.green))
-                      ]),
-                      Column(children: [
-                        const Text('Expenses',
-                            style: TextStyle(color: Colors.blue)),
+                          'My Money',
+                          style: Theme.of(context)
+                              .textTheme
+                              .headlineSmall
+                              ?.copyWith(fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 2),
                         Text(
-                            'Rp${transactionProvider.totalExpenses.toStringAsFixed(0)}',
-                            style: const TextStyle(color: Colors.red))
-                      ]),
-                    ],
-                  )
-                ],
+                          DateFormat('EEEE, dd MMMM yyyy')
+                              .format(DateTime.now()),
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodySmall
+                              ?.copyWith(color: Colors.grey[600]),
+                        ),
+                      ],
+                    ),
+                    CircleAvatar(
+                      backgroundColor:
+                          Theme.of(context).colorScheme.primaryContainer,
+                      child: Icon(Icons.person_rounded,
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onPrimaryContainer),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8.0),
-            child: BalanceChart(
-              dailyData: dailyData,
-              weeklyData: weeklyData,
-              monthlyData: monthlyData,
-              dailyLabels: dailyLabels,
-              weeklyLabels: weeklyLabels,
-              monthlyLabels: monthlyLabels,
+
+            // ── Balance Card ──
+            SliverToBoxAdapter(
+              child: Container(
+                margin: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF6750A4), Color(0xFF9A82DB)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF6750A4).withOpacity(0.3),
+                      blurRadius: 20,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    const Text('Total Saldo',
+                        style: TextStyle(color: Colors.white70, fontSize: 14)),
+                    const SizedBox(height: 8),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        currencyFormat
+                            .format(transactionProvider.totalBalance),
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 32,
+                            fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Row(
+                      children: [
+                        // Pemasukan
+                        Expanded(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 12, horizontal: 14),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(6),
+                                  decoration: BoxDecoration(
+                                    color:
+                                        Colors.greenAccent.withOpacity(0.2),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                      Icons.arrow_downward_rounded,
+                                      color: Colors.greenAccent,
+                                      size: 16),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      const Text('Pemasukan',
+                                          style: TextStyle(
+                                              color: Colors.white70,
+                                              fontSize: 11)),
+                                      Text(
+                                        currencyFormat.format(
+                                            transactionProvider.totalIncome),
+                                        style: const TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: 13),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        // Pengeluaran
+                        Expanded(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 12, horizontal: 14),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(6),
+                                  decoration: BoxDecoration(
+                                    color:
+                                        Colors.redAccent.withOpacity(0.2),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                      Icons.arrow_upward_rounded,
+                                      color: Colors.redAccent,
+                                      size: 16),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      const Text('Pengeluaran',
+                                          style: TextStyle(
+                                              color: Colors.white70,
+                                              fontSize: 11)),
+                                      Text(
+                                        currencyFormat.format(
+                                            transactionProvider
+                                                .totalExpenses),
+                                        style: const TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: 13),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
-          const Text('Recent Transactions', style: TextStyle(fontSize: 18)),
-          Expanded(
-            child: ListView.builder(
-              itemCount: transactions.length,
-              itemBuilder: (_, index) {
-                return TransactionTile(transaction: transactions[index]);
-              },
+
+            // ── Chart ──
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: BalanceChart(
+                  dailyData: dailyData,
+                  weeklyData: weeklyData,
+                  monthlyData: monthlyData,
+                  dailyLabels: dailyLabels,
+                  weeklyLabels: weeklyLabels,
+                  monthlyLabels: monthlyLabels,
+                ),
+              ),
             ),
-          )
-        ],
+
+            // ── Section Header ──
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Transaksi Terbaru',
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleMedium
+                          ?.copyWith(fontWeight: FontWeight.bold),
+                    ),
+                    Text(
+                      '${transactions.length} transaksi',
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodySmall
+                          ?.copyWith(color: Colors.grey[500]),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // ── Transaction List ──
+            if (transactions.isEmpty)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.all(40),
+                  child: Column(
+                    children: [
+                      Icon(Icons.receipt_long_rounded,
+                          size: 64, color: Colors.grey[300]),
+                      const SizedBox(height: 16),
+                      Text('Belum ada transaksi',
+                          style: TextStyle(
+                              color: Colors.grey[400], fontSize: 16)),
+                      const SizedBox(height: 4),
+                      Text('Tap + untuk menambah transaksi',
+                          style: TextStyle(
+                              color: Colors.grey[400], fontSize: 13)),
+                    ],
+                  ),
+                ),
+              )
+            else
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 80),
+                sliver: SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (_, index) =>
+                        TransactionTile(transaction: transactions[index]),
+                    childCount: transactions.length,
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: FloatingActionButton.extended(
         onPressed: () => Navigator.push(context,
             MaterialPageRoute(builder: (_) => const AddExpenseScreen())),
-        child: const Icon(Icons.add),
+        icon: const Icon(Icons.add_rounded),
+        label: const Text('Transaksi'),
+        elevation: 4,
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
     );
